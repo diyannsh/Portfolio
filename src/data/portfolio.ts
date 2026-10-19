@@ -1,5 +1,5 @@
 // All editable content lives here. Update freely — components read from this file.
-import me from "@/assets/me.jpg";
+import me from "@/assets/me.png";
 import p1 from "@/assets/project-1.jpg";
 import p2 from "@/assets/project-2.jpg";
 import p3 from "@/assets/project-3.jpg";

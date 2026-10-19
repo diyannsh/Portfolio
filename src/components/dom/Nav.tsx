@@ -20,25 +20,36 @@ export function Nav({ show }: { show: boolean }) {
     gsap.fromTo(menu.current.querySelectorAll("li"), { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: 0.06, duration: 0.8, ease: "expo.out" });
   }, [open]);
 
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1280px)");
+    const closeOnDesktop = () => { if (desktop.matches) setOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
   const go = (id: string) => { click(); setOpen(false); scrollToId(id); };
 
   return (
     <>
-      <header className={`fixed inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-5 md:px-8 transition-opacity duration-1000 ${show ? "opacity-100" : "opacity-0"}`}>
-        <button onClick={() => go("home")} className="ui-label font-extrabold text-foreground"><Roll text={portfolio.name} /></button>
-        <nav className="hidden gap-7 md:flex">
+      <header className={`race-nav absolute inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-5 md:px-8 transition-opacity duration-1000 ${show ? "opacity-100" : "opacity-0"}`}>
+        <button onClick={() => go("home")} className="race-nav__brand ui-label font-extrabold"><Roll text={portfolio.name} /></button>
+        <nav className="race-nav__links hidden gap-5 xl:flex xl:gap-8">
           {portfolio.nav.map((n) => (
-            <button key={n} onClick={() => go(n)} className="ui-label text-muted-foreground hover:text-foreground transition-colors"><Roll text={n} /></button>
+            <button key={n} onClick={() => go(n)} className="ui-label transition-colors"><Roll text={n} /></button>
           ))}
         </nav>
-        <button onClick={() => setOpen((o) => !o)} className="ui-label md:hidden text-foreground">{open ? "Close" : "Menu"}</button>
+        <button onClick={() => go("contact")} className="race-nav__contact ui-label hidden xl:block">[ Contact ↗ ]</button>
+        <button onClick={() => setOpen((o) => !o)} className="race-nav__toggle ui-label xl:hidden" aria-expanded={open} aria-label={open ? "Close navigation" : "Open navigation"}>
+          <span>{open ? "Close" : "Menu"}</span>
+          <i aria-hidden="true" />
+        </button>
       </header>
       {open && (
-        <div ref={menu} className="fixed inset-0 z-40 flex flex-col justify-center bg-background px-6 md:hidden">
+        <div ref={menu} className="fixed inset-0 z-40 flex flex-col justify-center bg-background px-5 sm:px-6 xl:hidden">
           <ul className="space-y-2">
             {portfolio.nav.map((n, i) => (
               <li key={n} className="overflow-hidden">
-                <button onClick={() => go(n)} className="chrome-text text-6xl flex items-baseline gap-3">
+                <button onClick={() => go(n)} className="chrome-text flex max-w-full flex-wrap items-baseline gap-3 text-[clamp(2.25rem,12vw,3.75rem)]">
                   <span className="ui-label text-muted-foreground font-sans">0{i + 1}</span>{n}
                 </button>
               </li>

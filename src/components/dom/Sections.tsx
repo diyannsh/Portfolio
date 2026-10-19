@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { portfolio } from "@/data/portfolio";
@@ -6,6 +6,8 @@ import { store } from "@/lib/store";
 import { Magnetic, Roll } from "./Magnetic";
 import { scrollToId } from "./Nav";
 import { click } from "@/lib/sound";
+import Lanyard from "./Lanyard";
+import LiquidChrome from "./LiquidChrome";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,9 +36,87 @@ function Label({ n, text }: { n: string; text: string }) {
   return <p className="ui-label mb-6 text-muted-foreground"><span className="text-foreground">{n}</span> — {text}</p>;
 }
 
+function RaceSeam({ carry }: { carry: "light" | "dark" }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const section = canvas?.parentElement;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !section || !context) return;
+    let progress = 0;
+
+    const noise = (x: number, y: number) => {
+      let hash = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+      hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+      return ((hash ^ (hash >>> 16)) >>> 0) / 4294967295;
+    };
+    const draw = () => {
+      const width = section.clientWidth;
+      const height = Math.ceil(window.innerHeight * 0.34);
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelWidth = Math.max(1, Math.round(width * ratio));
+      const pixelHeight = Math.max(1, Math.round(height * ratio));
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, width, height);
+
+      const cell = 24;
+      const columns = Math.ceil(width / cell);
+      const rows = Math.ceil(height / cell);
+      const base = carry === "light" ? "#f7fafb" : "#090a0b";
+      for (let y = 0; y < rows; y += 1) {
+        const depth = y / Math.max(1, rows - 1) + progress * 2;
+        if (depth > 1) break;
+        const solid = depth <= 0.16;
+        const fade = Math.max(0, Math.min(1, 1 - (depth - 0.16) / 0.84));
+        if (!solid && fade <= 0) break;
+        for (let x = 0; x < columns; x += 1) {
+          if (!solid && ((x + y) % 2 !== 0 || noise(x, y) > fade)) continue;
+          context.fillStyle = !solid && noise(x + 101, y + 57) < 0.06 ? "#02d2e3" : base;
+          context.fillRect(x * cell, y * cell, cell, cell);
+        }
+      }
+    };
+    const trigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top bottom",
+      end: "top top",
+      onUpdate: (self) => { progress = self.progress; draw(); },
+    });
+    const observer = new ResizeObserver(draw);
+    observer.observe(section);
+    window.addEventListener("resize", draw);
+    draw();
+    return () => {
+      trigger.kill();
+      observer.disconnect();
+      window.removeEventListener("resize", draw);
+    };
+  }, [carry]);
+
+  return <canvas ref={ref} className={`race-seam race-seam--${carry}`} aria-hidden="true" />;
+}
+
 /* ---------- HERO ---------- */
 export function Hero({ show }: { show: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
+  const trackPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width;
+    const y = (event.clientY - bounds.top) / bounds.height;
+    event.currentTarget.style.setProperty("--hero-pointer-x", `${x * 100}%`);
+    event.currentTarget.style.setProperty("--hero-pointer-y", `${y * 100}%`);
+  };
+  const resetPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    event.currentTarget.style.setProperty("--hero-pointer-x", "50%");
+    event.currentTarget.style.setProperty("--hero-pointer-y", "50%");
+  };
   useEffect(() => {
     if (!show) return;
     const q = gsap.utils.selector(ref);
@@ -50,62 +130,141 @@ export function Hero({ show }: { show: boolean }) {
     return () => st.kill();
   }, [show]);
 
+  const featuredProject = portfolio.projects[0];
+  const lastName = portfolio.name.split(" ").at(-1) ?? portfolio.name;
   return (
-    <section id="home" ref={ref} className="relative h-[100svh]">
-      <div className="absolute inset-x-0 bottom-[11vh] px-4 md:px-8">
-        <h1 className={`htitle chrome-text flex justify-center overflow-hidden pb-[0.06em] text-[17vw] md:text-[13.5vw] ${show ? "" : "invisible"}`}>
-          {portfolio.heroWord.split("").map((c, i) => <span key={i} className="hw inline-block chrome-text">{c}</span>)}
-        </h1>
-        <div className={`mx-auto mt-3 flex max-w-[86vw] items-end justify-between ${show ? "" : "invisible"}`}>
-          <p className="hs text-sm md:text-lg">
-            <span className="font-bold">{portfolio.role.bold}</span>{" "}
-            <span className="italic font-light text-muted-foreground">{portfolio.role.italic}</span>
-          </p>
-          <div className="hs flex items-center gap-5">
-            <div className="hidden h-8 w-5 justify-center rounded-full border border-faint pt-1.5 md:flex">
-              <span className="h-1.5 w-0.5 rounded bg-foreground" style={{ animation: "scrolldot 1.6s infinite" }} />
+    <section
+      id="home"
+      ref={ref}
+      onPointerMove={trackPointer}
+      onPointerLeave={resetPointer}
+      className="hero-section group relative min-h-[100svh] overflow-hidden"
+    >
+      <LiquidChrome
+        color="#02d2e3"
+        speed={0.16}
+        amplitude={0.22}
+        detail={3}
+        thickness={0.8}
+        interactive
+        style={{ position: "absolute", inset: 0, zIndex: 0, opacity: 0.28 }}
+      />
+      <div className="hero-photo" aria-hidden="true">
+        <img src={portfolio.photo} alt="" />
+      </div>
+      <div className="hero-copy">
+        <div className="hero-masthead">
+          <span className="hero-index">{portfolio.heroWord}</span>
+          <span className="hero-masthead__rule" />
+          <span className="hero-index">{portfolio.location}</span>
+        </div>
+
+        <div className="hero-core">
+          <div className="hero-identity">
+            <p className={`hero-kicker hs ${show ? "" : "invisible"}`}>{portfolio.name}</p>
+            <h1 className={`htitle hero-name ${show ? "" : "invisible"}`}>
+              {portfolio.firstName.split("").map((c, i) => (
+                <span key={i} className="hw inline-block">{c}</span>
+              ))}
+              <span className="hero-name__last">
+                {lastName.split("").map((c, i) => (
+                  <span key={i} className="hw inline-block">{c}</span>
+                ))}
+              </span>
+            </h1>
+            <p className={`hs hero-role ${show ? "" : "invisible"}`}>
+              <span>{portfolio.role.bold}</span> <em>{portfolio.role.italic}</em>
+            </p>
+            <div className={`hs hero-meta ${show ? "" : "invisible"}`}>
+              {portfolio.aboutMeta.map((item) => (
+                <p key={item.label}><span>{item.label}</span><b>{item.value}</b></p>
+              ))}
             </div>
-            <Magnetic>
-              <button onClick={() => scrollToId("contact")} className="ui-label rounded-full border border-faint px-4 py-2 hover:bg-foreground hover:text-background transition-colors">
-                <Roll text="Contact" />
-              </button>
-            </Magnetic>
+          </div>
+
+          {featuredProject && (
+            <aside className={`hs hero-feature ${show ? "" : "invisible"}`} aria-label="Featured project">
+              <p className="hero-feature__eyebrow">Selected work · {featuredProject.year}</p>
+              <div className="hero-feature__image"><img src={featuredProject.image} alt="" /></div>
+              <h2>{featuredProject.title}</h2>
+              <p>{featuredProject.description}</p>
+              <div className="hero-feature__stack">
+                {featuredProject.stack.map((item) => <span key={item}>{item}</span>)}
+              </div>
+            </aside>
+          )}
+        </div>
+
+        <div className={`hero-actions hs ${show ? "" : "invisible"}`}>
+          <p>Scroll to explore <span aria-hidden="true">↓</span></p>
+          <Magnetic>
+            <button onClick={() => scrollToId("contact")} className="race-button">
+              <Roll text="Contact" /><span aria-hidden="true">↗</span>
+            </button>
+          </Magnetic>
+          <div className="hero-socials">
+            {portfolio.socials.map((social) => <a key={social.label} href={social.href} target="_blank" rel="noreferrer">{social.label}</a>)}
           </div>
         </div>
       </div>
+      <div className="hero-bottom-type" aria-hidden="true">{portfolio.heroWord}</div>
     </section>
   );
 }
 
 /* ---------- ABOUT ---------- */
 export function About() {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
+  const [lanyardSize, setLanyardSize] = useState(0.34);
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const updateSize = () => setLanyardSize(desktop.matches ? 0.58 : 0.34);
+    updateSize();
+    desktop.addEventListener("change", updateSize);
+    return () => desktop.removeEventListener("change", updateSize);
+  }, []);
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(".w", { opacity: 0.15 }, {
-        opacity: 1, stagger: 0.1, ease: "none",
-        scrollTrigger: { trigger: ".stmt", start: "top 80%", end: "bottom 45%", scrub: true },
+      gsap.fromTo(".about-word", { opacity: 0.15 }, {
+        opacity: 1,
+        stagger: 0.1,
+        ease: "none",
+        scrollTrigger: { trigger: ".about-copy", start: "top 80%", end: "bottom 45%", scrub: true },
       });
-      gsap.fromTo(".fade", { y: 40, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.12, duration: 1, ease: "power3.out", scrollTrigger: { trigger: ".fade", start: "top 90%" } });
+      gsap.fromTo(".about-meta", { y: 40, opacity: 0 }, {
+        y: 0,
+        opacity: 1,
+        stagger: 0.12,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: ".about-meta", start: "top 90%" },
+      });
     }, ref);
     return () => ctx.revert();
   }, []);
+
   return (
-    <section id="about" ref={ref} className="relative mx-auto max-w-7xl px-5 py-32 md:px-8 md:py-48">
-      <Label n="01" text="About" />
-      <div className="grid gap-14 md:grid-cols-[1fr_320px] md:items-start">
-        <p className="stmt text-3xl font-medium leading-[1.15] tracking-tight md:text-5xl">
-          {portfolio.about.split(" ").map((w, i) => <span key={i} className="w">{w} </span>)}
-        </p>
-        <div className="fade">
-          <div className="overflow-hidden rounded-lg border border-faint" data-cursor="HELLO">
-            <img src={portfolio.photo} alt={portfolio.name} loading="lazy" width={768} height={1024} className="distort aspect-[3/4] w-full object-cover grayscale" />
-          </div>
-          <dl className="mt-6 space-y-3">
-            {portfolio.aboutMeta.map((m) => (
-              <div key={m.label} className="fade flex justify-between border-b border-faint pb-3">
-                <dt className="ui-label text-muted-foreground">{m.label}</dt>
-                <dd className="text-sm">{m.value}</dd>
+    <section id="about" ref={ref} className="race-paddock relative h-[100svh] min-h-[38rem] w-full overflow-hidden">
+      <Lanyard
+        frontImage={portfolio.photo}
+        size={lanyardSize}
+        anchor="right"
+        intro={false}
+        style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" }}
+      />
+      <div className="relative z-10 flex h-full items-center px-5 py-24 md:px-8">
+        <div className="w-[52%] max-w-2xl sm:w-[58%] md:w-1/2">
+          <Label n="01" text="About" />
+          <p className="about-copy text-[clamp(1.25rem,4vw,3rem)] font-medium leading-[1.15] tracking-tight">
+            {portfolio.about.split(" ").map((word, i) => (
+              <span key={i} className="about-word">{word} </span>
+            ))}
+          </p>
+          <dl className="about-meta mt-8 max-w-md space-y-3">
+            {portfolio.aboutMeta.map((item) => (
+              <div key={item.label} className="flex flex-wrap justify-between gap-x-4 gap-y-1 border-b border-faint pb-3">
+                <dt className="ui-label text-muted-foreground">{item.label}</dt>
+                <dd className="text-sm">{item.value}</dd>
               </div>
             ))}
           </dl>
@@ -148,7 +307,7 @@ function TagSphere() {
     return () => cancelAnimationFrame(raf);
   }, []);
   return (
-    <div ref={ref} className="relative mx-auto aspect-square w-full max-w-[560px]" data-cursor="SPIN">
+    <div ref={ref} className="tag-sphere relative mx-auto aspect-square w-full max-w-[560px]" data-cursor="SPIN">
       {portfolio.skills.map((s) => (
         <span key={s} className="absolute left-1/2 top-1/2 whitespace-nowrap rounded-full border border-faint bg-background/60 px-3 py-1.5 text-xs font-semibold tracking-wide backdrop-blur md:text-sm">{s}</span>
       ))}
@@ -186,12 +345,13 @@ function Marquee() {
 
 export function Skills() {
   return (
-    <section id="skills" className="relative py-32 md:py-40">
+    <section id="skills" className="race-season relative">
+      <RaceSeam carry="light" />
       <div className="mx-auto max-w-7xl px-5 md:px-8">
         <Label n="02" text="Skills" />
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
-            <SplitHeading text="TOOLKIT" className="text-[18vw] md:text-[9vw]" />
+            <SplitHeading text="TOOLKIT" className="text-[clamp(3rem,18vw,9rem)]" />
             <p className="mt-6 max-w-md text-muted-foreground">Move your cursor to steer the cloud. A stack chosen for speed, craft and scale — from pixels on the GPU to queries in the database.</p>
           </div>
           <TagSphere />
@@ -223,7 +383,7 @@ function CaseStudy({ p, i, onClose }: { p: Project; i: number; onClose: () => vo
       <img src={p.image} alt={p.title} className="h-[60vh] w-full object-cover" />
       <div className="mx-auto max-w-5xl px-5 py-16 md:px-8">
         <p className="cs ui-label text-muted-foreground">Case study {String(i + 1).padStart(2, "0")} · {p.year}</p>
-        <h3 className="cs chrome-text mt-4 text-[14vw] md:text-[8vw]">{p.title.toUpperCase()}</h3>
+        <h3 className="cs chrome-text mt-4 text-[clamp(3rem,14vw,8rem)]">{p.title.toUpperCase()}</h3>
         <p className="cs mt-8 max-w-2xl text-xl text-muted-foreground">{p.description}</p>
         <div className="cs mt-8 flex flex-wrap gap-2">{p.stack.map((s) => <span key={s} className="ui-label rounded-full border border-faint px-3 py-1.5">{s}</span>)}</div>
         <div className="cs mt-10 flex gap-6">
@@ -255,11 +415,12 @@ export function Projects() {
   }, []);
 
   return (
-    <section id="projects" ref={sec} className="relative overflow-hidden py-24 md:flex md:h-screen md:items-center md:py-0">
-      <div ref={track} className="flex flex-col gap-10 px-5 md:flex-row md:items-center md:gap-12 md:px-[8vw]">
+    <section id="projects" ref={sec} className="race-projects relative overflow-hidden py-24 md:flex md:h-screen md:items-center md:py-0">
+      <RaceSeam carry="dark" />
+      <div ref={track} className="projects-track flex flex-col gap-10 px-5 md:flex-row md:items-center md:gap-12 md:px-[8vw]">
         <div className="shrink-0 md:w-[32vw]">
           <Label n="03" text="Selected work" />
-          <SplitHeading text="PROJECTS" className="text-[18vw] md:text-[8vw]" />
+          <SplitHeading text="PROJECTS" className="text-[clamp(3rem,18vw,8rem)]" />
           <p className="mt-6 max-w-sm text-muted-foreground">Scroll to explore. Click any piece to open its case study.</p>
         </div>
         {portfolio.projects.map((p, i) => (
@@ -267,7 +428,7 @@ export function Projects() {
             <div className="overflow-hidden rounded-lg border border-faint">
               <img src={p.image} alt={p.title} loading="lazy" width={1280} height={800} className="rgb-hover aspect-[16/10] w-full object-cover" />
             </div>
-            <div className="mt-5 flex items-start justify-between gap-4">
+            <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-baseline gap-4">
                 <span className="ui-label text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="font-display text-2xl tracking-tight md:text-4xl">{p.title}</h3>
@@ -300,23 +461,26 @@ export function ExperienceSection() {
     return () => ctx.revert();
   }, []);
   return (
-    <section id="experience" ref={ref} className="relative mx-auto max-w-5xl px-5 py-32 md:px-8 md:py-48">
-      <Label n="04" text="Experience" />
-      <SplitHeading text="JOURNEY" className="text-[18vw] md:text-[9vw]" />
-      <div className="tl relative mt-16 pl-10 md:pl-16">
-        <svg className="absolute left-2 top-0 h-full w-2 md:left-5" preserveAspectRatio="none" viewBox="0 0 2 1000">
-          <line x1="1" y1="0" x2="1" y2="1000" className="stroke-faint" strokeWidth="2" />
-          <line x1="1" y1="0" x2="1" y2="1000" className="tl-line stroke-foreground" strokeWidth="2" strokeDasharray="1000" />
-        </svg>
-        {portfolio.experience.map((e) => (
-          <div key={e.role} className="tl-item relative border-b border-faint py-10">
-            <span className="absolute -left-[34px] top-12 h-2.5 w-2.5 rounded-full bg-foreground md:-left-[49px]" />
-            <p className="ui-label text-muted-foreground">{e.period}</p>
-            <h3 className="mt-3 font-display text-2xl tracking-tight md:text-4xl">{e.role}</h3>
-            <p className="mt-1 italic text-muted-foreground">{e.company}</p>
-            <p className="mt-4 max-w-xl text-muted-foreground">{e.text}</p>
-          </div>
-        ))}
+    <section id="experience" ref={ref} className="race-timeline relative px-5 py-32 md:px-8 md:py-48">
+      <RaceSeam carry="light" />
+      <div className="mx-auto max-w-5xl">
+        <Label n="04" text="Experience" />
+        <SplitHeading text="JOURNEY" className="text-[18vw] md:text-[9vw]" />
+        <div className="tl relative mt-16 pl-10 md:pl-16">
+          <svg className="absolute left-2 top-0 h-full w-2 md:left-5" preserveAspectRatio="none" viewBox="0 0 2 1000">
+            <line x1="1" y1="0" x2="1" y2="1000" className="stroke-faint" strokeWidth="2" />
+            <line x1="1" y1="0" x2="1" y2="1000" className="tl-line stroke-foreground" strokeWidth="2" strokeDasharray="1000" />
+          </svg>
+          {portfolio.experience.map((e) => (
+            <div key={e.role} className="tl-item relative border-b border-faint py-10">
+              <span className="absolute -left-[34px] top-12 h-2.5 w-2.5 rounded-full bg-foreground md:-left-[49px]" />
+              <p className="ui-label text-muted-foreground">{e.period}</p>
+              <h3 className="mt-3 font-display text-2xl tracking-tight md:text-4xl">{e.role}</h3>
+              <p className="mt-1 italic text-muted-foreground">{e.company}</p>
+              <p className="mt-4 max-w-xl text-muted-foreground">{e.text}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -343,18 +507,18 @@ export function Contact() {
     setTimeout(() => setToast(false), 2000);
   };
   return (
-    <section id="contact" className="relative flex min-h-screen flex-col justify-between px-5 pt-32 md:px-8">
+    <section id="contact" className="race-footer relative isolate flex min-h-screen flex-col justify-between overflow-hidden px-5 pt-32 md:px-8">
       <div className="spotlight pointer-events-none absolute inset-0 opacity-60" />
       <div className="relative mx-auto w-full max-w-7xl">
         <Label n="05" text="Contact" />
-        <Magnetic strength={0.15}><SplitHeading text="LET'S TALK" className="text-[19vw] md:text-[14vw]" /></Magnetic>
-        <button onClick={copy} data-cursor="COPY" className="mt-10 block text-2xl font-medium tracking-tight underline decoration-faint underline-offset-8 transition-colors hover:decoration-foreground md:text-5xl">
+        <Magnetic strength={0.15}><SplitHeading text="LET'S TALK" className="text-[clamp(2.5rem,19vw,14rem)]" /></Magnetic>
+        <button onClick={copy} data-cursor="COPY" className="race-email mt-10 block max-w-full break-all text-[clamp(1rem,4vw,3rem)] font-medium tracking-tight underline decoration-faint underline-offset-8 transition-colors hover:decoration-foreground">
           {portfolio.email}
         </button>
         <div className="mt-12 flex flex-wrap gap-3">
           {portfolio.socials.map((s) => (
             <Magnetic key={s.label}>
-              <a href={s.href} target="_blank" rel="noreferrer" className="ui-label block rounded-full border border-faint px-6 py-4 transition-colors hover:bg-foreground hover:text-background">
+              <a href={s.href} target="_blank" rel="noreferrer" className="race-social ui-label block rounded-full border border-faint px-6 py-4 transition-colors">
                 <Roll text={s.label} />
               </a>
             </Magnetic>
@@ -365,7 +529,7 @@ export function Contact() {
         <span>Local time — <Clock /></span>
         <span>© 2026 {portfolio.name}</span>
       </footer>
-      <div className={`fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-foreground px-5 py-3 ui-label text-background transition-all duration-500 ${toast ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+      <div className={`race-toast fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-foreground px-5 py-3 ui-label text-background transition-all duration-500 ${toast ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
         Email copied to clipboard
       </div>
     </section>
