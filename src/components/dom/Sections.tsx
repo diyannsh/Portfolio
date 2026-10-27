@@ -8,6 +8,7 @@ import { scrollToId } from "./Nav";
 import { click } from "@/lib/sound";
 import Lanyard from "./Lanyard";
 import LiquidChrome from "./LiquidChrome";
+import { ProjectCaseStudy, type ProjectLaunch } from "./ProjectTransition";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -307,7 +308,7 @@ function TagSphere() {
     return () => cancelAnimationFrame(raf);
   }, []);
   return (
-    <div ref={ref} className="tag-sphere relative mx-auto aspect-square w-full max-w-[560px]" data-cursor="SPIN">
+    <div ref={ref} className="tag-sphere relative mx-auto aspect-square w-full max-w-[560px]">
       {portfolio.skills.map((s) => (
         <span key={s} className="absolute left-1/2 top-1/2 whitespace-nowrap rounded-full border border-faint bg-background/60 px-3 py-1.5 text-xs font-semibold tracking-wide backdrop-blur md:text-sm">{s}</span>
       ))}
@@ -363,43 +364,11 @@ export function Skills() {
 }
 
 /* ---------- PROJECTS ---------- */
-type Project = (typeof portfolio.projects)[number];
-
-function CaseStudy({ p, i, onClose }: { p: Project; i: number; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    (window as any).__lenis?.stop();
-    const q = gsap.utils.selector(ref);
-    gsap.fromTo(ref.current, { clipPath: "inset(30% 20% 30% 20% round 12px)" }, { clipPath: "inset(0% 0% 0% 0% round 0px)", duration: 1, ease: "expo.inOut" });
-    gsap.fromTo(q(".cs"), { y: 40, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, delay: 0.5, duration: 0.9, ease: "expo.out" });
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", esc);
-    return () => { window.removeEventListener("keydown", esc); (window as any).__lenis?.start(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const close = () => gsap.to(ref.current, { clipPath: "inset(50% 50% 50% 50% round 12px)", duration: 0.7, ease: "expo.in", onComplete: onClose });
-  return (
-    <div ref={ref} className="fixed inset-0 z-[70] overflow-y-auto bg-background" data-lenis-prevent>
-      <img src={p.image} alt={p.title} className="h-[60vh] w-full object-cover" />
-      <div className="mx-auto max-w-5xl px-5 py-16 md:px-8">
-        <p className="cs ui-label text-muted-foreground">Case study {String(i + 1).padStart(2, "0")} · {p.year}</p>
-        <h3 className="cs chrome-text mt-4 text-[clamp(3rem,14vw,8rem)]">{p.title.toUpperCase()}</h3>
-        <p className="cs mt-8 max-w-2xl text-xl text-muted-foreground">{p.description}</p>
-        <div className="cs mt-8 flex flex-wrap gap-2">{p.stack.map((s) => <span key={s} className="ui-label rounded-full border border-faint px-3 py-1.5">{s}</span>)}</div>
-        <div className="cs mt-10 flex gap-6">
-          <a href={p.live} target="_blank" rel="noreferrer" className="ui-label underline underline-offset-4">Live site ↗</a>
-          <a href={p.github} target="_blank" rel="noreferrer" className="ui-label underline underline-offset-4">GitHub ↗</a>
-        </div>
-      </div>
-      <button onClick={close} className="ui-label fixed right-6 top-6 rounded-full border border-faint bg-background px-4 py-2" data-cursor="CLOSE">Close ✕</button>
-    </div>
-  );
-}
-
 export function Projects() {
   const sec = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState<number | null>(null);
+  const openingRef = useRef(false);
+  const [launch, setLaunch] = useState<ProjectLaunch | null>(null);
 
   useEffect(() => {
     const mm = gsap.matchMedia();
@@ -414,6 +383,19 @@ export function Projects() {
     return () => mm.revert();
   }, []);
 
+  const openProject = (index: number, sourceCard: HTMLElement) => {
+    if (launch || openingRef.current) return;
+    const media = sourceCard.firstElementChild;
+    const section = sec.current;
+    if (!(media instanceof HTMLDivElement) || !section) return;
+    openingRef.current = true;
+    click();
+    const token = `project-${index}-${Date.now()}`;
+    const scroll = (window as any).__lenis?.scroll ?? window.scrollY;
+    history.pushState({ ...history.state, portfolioProjectTransition: token }, "", location.href);
+    setLaunch({ index, button: sourceCard, media, section, scroll, token });
+  };
+
   return (
     <section id="projects" ref={sec} className="race-projects relative overflow-hidden py-24 md:flex md:h-screen md:items-center md:py-0">
       <RaceSeam carry="dark" />
@@ -424,7 +406,7 @@ export function Projects() {
           <p className="mt-6 max-w-sm text-muted-foreground">Scroll to explore. Click any piece to open its case study.</p>
         </div>
         {portfolio.projects.map((p, i) => (
-          <article key={p.title} onClick={() => { click(); setOpen(i); }} data-cursor="VIEW" className="group relative shrink-0 md:w-[48vw]">
+          <article key={p.title} tabIndex={0} role="button" aria-label={`Open ${p.title} case study`} onKeyDown={(event) => { if (event.target === event.currentTarget && ["Enter", " "].includes(event.key)) { event.preventDefault(); openProject(i, event.currentTarget); } }} onClick={(event) => openProject(i, event.currentTarget)} className="group relative shrink-0 md:w-[48vw]">
             <div className="overflow-hidden rounded-lg border border-faint">
               <img src={p.image} alt={p.title} loading="lazy" width={1280} height={800} className="rgb-hover aspect-[16/10] w-full object-cover" />
             </div>
@@ -443,7 +425,7 @@ export function Projects() {
         ))}
         <div className="hidden w-[8vw] shrink-0 md:block" />
       </div>
-      {open !== null && <CaseStudy p={portfolio.projects[open]!} i={open} onClose={() => setOpen(null)} />}
+      {launch && <ProjectCaseStudy launch={launch} onClose={() => { openingRef.current = false; setLaunch(null); }} />}
     </section>
   );
 }
@@ -512,7 +494,7 @@ export function Contact() {
       <div className="relative mx-auto w-full max-w-7xl">
         <Label n="05" text="Contact" />
         <Magnetic strength={0.15}><SplitHeading text="LET'S TALK" className="text-[clamp(2.5rem,19vw,14rem)]" /></Magnetic>
-        <button onClick={copy} data-cursor="COPY" className="race-email mt-10 block max-w-full break-all text-[clamp(1rem,4vw,3rem)] font-medium tracking-tight underline decoration-faint underline-offset-8 transition-colors hover:decoration-foreground">
+        <button onClick={copy} className="race-email mt-10 block max-w-full break-all text-[clamp(1rem,4vw,3rem)] font-medium tracking-tight underline decoration-faint underline-offset-8 transition-colors hover:decoration-foreground">
           {portfolio.email}
         </button>
         <div className="mt-12 flex flex-wrap gap-3">

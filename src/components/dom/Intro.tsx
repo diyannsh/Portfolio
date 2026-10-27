@@ -65,6 +65,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
       .add(end, "-=0.3")
       .to(root.current, { opacity: 0, duration: 0.5, onComplete: () => setGone(true) });
 
+    t.timeScale(2);
+
     return () => {
       t.kill();
     };

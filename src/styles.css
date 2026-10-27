@@ -199,10 +199,10 @@
   overflow: hidden;
   color: var(--foreground);
   font-family: var(--font-display);
-  font-size: clamp(4.5rem, 12vw, 11rem);
+  font-size: clamp(4.5rem, 10vw, 10rem);
   font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 0.82;
+  letter-spacing: -0.005em;
+  line-height: 0.94;
   text-transform: uppercase;
 }
 .hero-name .hw { color: var(--foreground); }
@@ -318,13 +318,13 @@
 }
 
 .race-nav { color: var(--foreground); }
-.race-nav__brand { position: relative; z-index: 1; white-space: nowrap; }
-.race-nav__links { position: absolute; left: 50%; transform: translateX(-50%); }
-.race-nav__links button,
-.race-nav__contact { color: var(--foreground); white-space: nowrap; transition: color 150ms ease; }
-.race-nav__links button:hover,
-.race-nav__contact:hover { color: #008f9b; }
-.race-nav__toggle { display: flex; align-items: center; gap: 0.6rem; color: var(--foreground); }
+.race-nav__brand { justify-self: start; white-space: nowrap; }
+.race-nav__links { min-width: 0; justify-self: center; }
+.race-nav__links button { color: var(--foreground); white-space: nowrap; transition: color 150ms ease; }
+.race-nav__links button:hover { color: #008f9b; }
+.race-nav__toggle { align-items: center; justify-self: end; gap: 0.6rem; color: var(--foreground); }
+html[data-story-tone="dark"] .race-nav { --foreground: #f7fafb; }
+html[data-story-tone="dark"] .race-nav__links button:hover { color: var(--accent); }
 .race-nav__toggle i,
 .race-nav__toggle i::after { display: block; width: 1.25rem; height: 1px; background: currentColor; content: ""; }
 .race-nav__toggle i { position: relative; }
@@ -420,6 +420,26 @@ html[data-story-tone="dark"] .race-hud {
 .race-projects article h3 { font-family: var(--font-display); text-transform: uppercase; }
 .race-projects .ui-label { letter-spacing: 0.12em; }
 
+.race-project-overlay {
+  --background: #f7fafb;
+  --foreground: #090a0b;
+  --muted-foreground: #535a60;
+  --faint: rgb(9 10 11 / 16%);
+  --border: #dfe5e9;
+  color: var(--foreground);
+}
+.project-case { position: fixed; inset: 0; z-index: 95; width: 100vw; height: 100dvh; overscroll-behavior: contain; outline: none; scrollbar-width: none; }
+.project-case::-webkit-scrollbar { display: none; }
+.project-case-backdrop { position: fixed; inset: 0; background: #f7fafb; pointer-events: none; }
+.project-case-media { width: 100%; height: 100dvh; overflow: hidden; }
+.project-case-media > img,
+.project-transition-image > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.project-transition-image { position: fixed; z-index: 8; overflow: hidden; border: 1px solid #dfe5e9; border-radius: var(--radius-lg); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.2rem), calc(100% - 1.2rem) 100%, 0 100%); pointer-events: none; will-change: transform, opacity; }
+.project-case-close { position: fixed; right: 1.5rem; top: 1.5rem; z-index: 10; border: 1px solid var(--faint); border-radius: 999px; background: #f7fafb; padding: 0.5rem 1rem; cursor: pointer; }
+.project-case-body { margin-top: 4rem; }
+.project-case-body > section { border-top: 1px solid var(--faint); padding-top: 2.5rem; margin-top: 4rem; }
+.project-case-body > section:first-child { margin-top: 0; }
+
 .race-timeline .tl { padding-left: 0; border-left: 0; }
 .race-timeline .tl svg { left: 50%; transform: translateX(-50%); }
 .race-timeline .tl-item {
@@ -485,17 +505,24 @@ html[data-story-tone="dark"] .race-hud {
 .story-stack__chapter--skills { z-index: 3; }
 
 @media (max-width: 1279px) {
-  .race-nav__links { position: static; transform: none; }
   .hero-copy { padding-top: 5rem; }
   .hero-core { grid-template-columns: minmax(0, 1fr) minmax(13rem, 17rem); gap: 2rem; padding-inline: 1vw; }
   .hero-photo { right: 9%; width: 62vw; }
+}
+@media (min-width: 1024px) and (max-width: 1360px) {
+  .hero-name { font-size: clamp(4.5rem, 8.7vw, 8rem); }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hero-core { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 1.5rem; padding: 2rem 0; }
+  .hero-feature { display: none; }
+  .hero-name { max-width: none; font-size: clamp(4rem, 9.5vw, 6.25rem); }
 }
 @media (max-width: 767px) {
   .hero-copy { min-height: 100svh; padding: 5rem 1.25rem 1.25rem; }
   .hero-masthead { gap: 0.6rem; }
   .hero-index { font-size: 0.6rem; }
   .hero-core { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 1.5rem; padding: 2rem 0; }
-  .hero-name { font-size: clamp(4.4rem, 17vw, 8rem); }
+  .hero-name { max-width: none; font-size: clamp(3rem, 14vw, 6.5rem); }
   .hero-kicker { margin-bottom: 0.75rem; }
   .hero-meta { max-width: 25rem; margin-top: 1.3rem; }
   .hero-meta p { font-size: 0.62rem; }

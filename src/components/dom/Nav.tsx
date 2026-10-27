@@ -13,7 +13,22 @@ export function scrollToId(id: string) {
 
 export function Nav({ show }: { show: boolean }) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let isScrolled = false;
+    const update = () => {
+      const next = window.scrollY > window.innerHeight * 0.55;
+      if (next !== isScrolled) {
+        isScrolled = next;
+        setScrolled(next);
+      }
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   useEffect(() => {
     if (!open || !menu.current) return;
@@ -31,15 +46,21 @@ export function Nav({ show }: { show: boolean }) {
 
   return (
     <>
-      <header className={`race-nav absolute inset-x-0 top-0 z-50 flex items-center justify-between px-5 py-5 md:px-8 transition-opacity duration-1000 ${show ? "opacity-100" : "opacity-0"}`}>
-        <button onClick={() => go("home")} className="race-nav__brand ui-label font-extrabold"><Roll text={portfolio.name} /></button>
-        <nav className="race-nav__links hidden gap-5 xl:flex xl:gap-8">
+      <header className={`race-nav fixed inset-x-0 top-0 z-50 grid grid-cols-[1fr_auto] items-center px-5 py-5 md:px-8 transition-opacity duration-1000 xl:grid-cols-[1fr_auto_1fr] ${show ? "opacity-100" : "opacity-0"}`}>
+        <button
+          onClick={() => go("home")}
+          aria-hidden={scrolled}
+          tabIndex={scrolled ? -1 : 0}
+          className={`race-nav__brand ui-label font-extrabold transition-opacity duration-300 ${scrolled ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        >
+          <Roll text={portfolio.name} />
+        </button>
+        <nav aria-label="Main navigation" className="race-nav__links hidden gap-4 xl:flex xl:gap-7">
           {portfolio.nav.map((n) => (
             <button key={n} onClick={() => go(n)} className="ui-label transition-colors"><Roll text={n} /></button>
           ))}
         </nav>
-        <button onClick={() => go("contact")} className="race-nav__contact ui-label hidden xl:block">[ Contact ↗ ]</button>
-        <button onClick={() => setOpen((o) => !o)} className="race-nav__toggle ui-label xl:hidden" aria-expanded={open} aria-label={open ? "Close navigation" : "Open navigation"}>
+        <button onClick={() => setOpen((o) => !o)} className="race-nav__toggle ui-label flex xl:hidden" aria-expanded={open} aria-label={open ? "Close navigation" : "Open navigation"}>
           <span>{open ? "Close" : "Menu"}</span>
           <i aria-hidden="true" />
         </button>

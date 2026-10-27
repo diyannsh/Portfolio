@@ -3,8 +3,7 @@ import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Intro } from "./dom/Intro";
-import TargetCursor from "./dom/TargetCursor";
-import { Nav } from "./dom/Nav";
+import { Nav, scrollToId } from "./dom/Nav";
 import { About, Contact, ExperienceSection, Hero, Projects, Skills } from "./dom/Sections";
 import { store } from "@/lib/store";
 import { setSound, click } from "@/lib/sound";
@@ -25,7 +24,7 @@ function StoryRail({ show }: { show: boolean }) {
 
   useEffect(() => {
     const updateTone = (id: string) => {
-      document.documentElement.dataset.storyTone = ["skills", "experience", "contact"].includes(id) ? "dark" : "light";
+      document.documentElement.dataset["storyTone"] = ["skills", "experience", "contact"].includes(id) ? "dark" : "light";
     };
     const current = storyChapters.reduce((latest, chapter, index) => {
       const section = document.getElementById(chapter.id);
@@ -47,7 +46,7 @@ function StoryRail({ show }: { show: boolean }) {
     });
     return () => {
       triggers.forEach((trigger) => trigger.kill());
-      delete document.documentElement.dataset.storyTone;
+      delete document.documentElement.dataset["storyTone"];
     };
   }, []);
 
@@ -122,6 +121,24 @@ function Hud({ show }: { show: boolean }) {
 
 export function Portfolio() {
   const [ready, setReady] = useState(false);
+
+  // Pointer input for the skill cloud and scene, independent of cursor styling.
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      store.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      store.mouse.y = 1 - (event.clientY / window.innerHeight) * 2;
+      store.mouse.active = true;
+    };
+    const leave = () => { store.mouse.active = false; };
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("blur", leave);
+    document.addEventListener("pointerleave", leave);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("blur", leave);
+      document.removeEventListener("pointerleave", leave);
+    };
+  }, []);
 
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
@@ -202,7 +219,6 @@ export function Portfolio() {
           <feDisplacementMap in="SourceGraphic" scale="22" />
         </filter>
       </svg>
-      <TargetCursor targetSelector="[data-cursor], a, button" />
       <Intro onDone={onDone} />
       <Nav show={ready} />
       <StoryRail show={ready} />
