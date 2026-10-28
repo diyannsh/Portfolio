@@ -5,7 +5,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Intro } from "./dom/Intro";
 import { Nav, scrollToId } from "./dom/Nav";
 import { About, Contact, ExperienceSection, Hero, Projects, Skills } from "./dom/Sections";
+import { Certificates } from "./dom/Certificates";
 import { store } from "@/lib/store";
+import { ownsSceneInput } from "@/lib/scene-input";
 import { setSound, click } from "@/lib/sound";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,6 +17,7 @@ const storyChapters = [
   { id: "about", label: "About" },
   { id: "skills", label: "Toolkit" },
   { id: "projects", label: "Selected work" },
+  { id: "certificates", label: "Certificates" },
   { id: "experience", label: "Journey" },
   { id: "contact", label: "Contact" },
 ];
@@ -122,9 +125,16 @@ function Hud({ show }: { show: boolean }) {
 export function Portfolio() {
   const [ready, setReady] = useState(false);
 
-  // Pointer input for the skill cloud and scene, independent of cursor styling.
+  // Shared hero scene input belongs only to the home section.
   useEffect(() => {
     const move = (event: PointerEvent) => {
+      const home = document.getElementById("home");
+      if (!home || !ownsSceneInput(home, event.target)) {
+        store.mouse.active = false;
+        store.mouse.x = 0;
+        store.mouse.y = 0;
+        return;
+      }
       store.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       store.mouse.y = 1 - (event.clientY / window.innerHeight) * 2;
       store.mouse.active = true;
@@ -238,6 +248,7 @@ export function Portfolio() {
         </div>
         <div className="relative bg-background">
           <Projects />
+          <Certificates />
           <ExperienceSection />
           <Contact />
         </div>

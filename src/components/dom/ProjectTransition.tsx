@@ -6,29 +6,16 @@ import { portfolio } from "@/data/portfolio";
 
 gsap.registerPlugin(ScrollTrigger);
 type Project = (typeof portfolio.projects)[number];
-export type ProjectLaunch = { index: number; button: HTMLElement; media: HTMLDivElement; section: HTMLElement; scroll: number; token: string };
+export type ProjectLaunch = { index: number; button: HTMLElement; media: HTMLDivElement; section: HTMLElement; scroll: number; token: string; imageAppearance: { filter: string; transform: string } };
 
-// Click transition only. The gallery keeps its original markup and styling.
-// Fitted to the reference's 30 fps sequence at 2.30–3.15s: a short pickup,
-// accelerating push, dissolve, then a slower arrival. Focus stays near the
-// reference's measured 54% / 54% screen point, independently of page layout.
+// Expand the clicked image directly to the case-study hero, then hand it over
+// at identical bounds and colour so there is no overshoot or shrinking swap.
 const MOTION = {
-  pickup: 0.045,
-  pickupScale: 1.16,
-  push: 0.12,
-  dissolveAt: 0.215,
-  dissolve: 0.14,
-  revealAt: 0.29,
-  reveal: 0.12,
-  // Cover the opening viewport throughout the fade; case study starts below it.
-  arrivalScale: 1.04,
-  settle: 0.49,
-  metadataAt: 0.38,
+  expand: 0.65,
+  handover: 0.12,
+  metadataAt: 0.55,
   metadata: 0.25,
   stagger: 0.055,
-  focusX: 0.54,
-  focusY: 0.54,
-  overscan: 1.12,
 } as const;
 
 function Artwork({ project, imageRef }: { project: Project; imageRef?: Ref<HTMLImageElement> }) {
@@ -91,6 +78,14 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
     const body = document.body;
     const lenis = (window as any).__lenis;
     const wasStopped = lenis?.isStopped;
+    const sourceImage = launch.media.querySelector("img");
+    const sourceStyles = sourceImage ? { filter: sourceImage.style.filter, transform: sourceImage.style.transform, transition: sourceImage.style.transition } : null;
+    // Keep the clicked frame visible while the portal images decode, even after hover leaves.
+    if (sourceImage) {
+      sourceImage.style.transition = "none";
+      sourceImage.style.filter = launch.imageAppearance.filter;
+      sourceImage.style.transform = launch.imageAppearance.transform;
+    }
     const saved = { htmlOverflow: html.style.overflow, bodyOverflow: body.style.overflow, padding: body.style.paddingRight, mediaOpacity: launch.media.style.opacity };
     const scrollbar = window.innerWidth - html.clientWidth;
     const padding = parseFloat(getComputedStyle(body).paddingRight) || 0;
@@ -112,16 +107,10 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
     let closeFade: gsap.core.Tween | null = null;
     let source = launch.media.getBoundingClientRect();
     let target = media.getBoundingClientRect();
-    const sourceImage = launch.media.querySelector("img");
-    const copySourceAppearance = () => {
-      if (!sourceImage) return;
-      const style = getComputedStyle(sourceImage);
-      // Preserve the existing gallery hover crop at the first shared frame.
-      gsap.set(flightImageRef.current, { filter: style.filter, transform: style.transform, transformOrigin: style.transformOrigin });
-    };
-    copySourceAppearance();
+    // This snapshot was taken in the click handler, while hover was still active.
+    gsap.set(flightImageRef.current, { ...launch.imageAppearance, transformOrigin: "50% 50%" });
+    const imageScale = Number(gsap.getProperty(flightImageRef.current, "scaleX")) || 1;
     gsap.set([environment, media, ...metadataItems, copy, close, flight], { autoAlpha: 0 });
-    gsap.set(media, { scale: reduced ? 1 : MOTION.arrivalScale });
     const placeFlight = () => {
       gsap.set(flight, { left: source.left, top: source.top, width: source.width, height: source.height, x: 0, y: 0, scale: 1, transformOrigin: "50% 50%" });
     };
@@ -132,17 +121,18 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
       timeline.fromTo([media, ...metadataItems, copy, close], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.12, immediateRender: false }, 0.02);
       timeline.fromTo(flight, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1, immediateRender: false }, 0);
     } else {
-      timeline.fromTo(flight, { scale: 1 }, { scale: MOTION.pickupScale, duration: MOTION.pickup, ease: "power1.out", immediateRender: false }, 0);
-      timeline.fromTo(flight, { scale: MOTION.pickupScale, x: 0, y: 0 }, {
-        scale: () => Math.max(window.innerWidth / source.width, window.innerHeight / source.height) * MOTION.overscan,
-        x: () => gsap.utils.clamp(target.left, target.right, window.innerWidth * MOTION.focusX) - source.left - source.width / 2,
-        y: () => gsap.utils.clamp(target.top, target.bottom, window.innerHeight * MOTION.focusY) - source.top - source.height / 2,
-        duration: MOTION.push, ease: "power3.in", immediateRender: false,
-      }, MOTION.pickup);
-      timeline.fromTo(environment, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: "power2.in", immediateRender: false }, 0.05);
-      timeline.fromTo(flight, { autoAlpha: 1 }, { autoAlpha: 0, duration: MOTION.dissolve, ease: "power1.inOut", immediateRender: false }, MOTION.dissolveAt);
-      timeline.fromTo(media, { autoAlpha: 0 }, { autoAlpha: 1, duration: MOTION.reveal, ease: "power2.out", immediateRender: false }, MOTION.revealAt);
-      timeline.fromTo(media, { scale: MOTION.arrivalScale }, { scale: 1, duration: MOTION.settle, ease: "power1.out", immediateRender: false }, MOTION.revealAt);
+      timeline.fromTo(flight, {
+        left: () => source.left, top: () => source.top, width: () => source.width, height: () => source.height,
+      }, {
+        left: () => target.left, top: () => target.top, width: () => target.width, height: () => target.height,
+        borderRadius: 0, borderWidth: 0,
+        clipPath: "polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%)",
+        duration: MOTION.expand, ease: "power3.inOut", immediateRender: false,
+      }, 0);
+      timeline.fromTo(flightImageRef.current, { scale: imageScale, filter: launch.imageAppearance.filter }, { scale: 1, filter: "none", duration: MOTION.expand, ease: "power3.inOut", immediateRender: false }, 0);
+      timeline.fromTo(environment, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: "power2.inOut", immediateRender: false }, 0);
+      timeline.set(media, { autoAlpha: 1 }, MOTION.expand);
+      timeline.fromTo(flight, { autoAlpha: 1 }, { autoAlpha: 0, duration: MOTION.handover, ease: "none", immediateRender: false }, MOTION.expand);
       timeline.fromTo(metadataItems, { y: 4, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: MOTION.metadata, stagger: MOTION.stagger, ease: "power2.out", immediateRender: false }, MOTION.metadataAt);
       timeline.fromTo(copy, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, immediateRender: false }, 0.52);
       timeline.fromTo(close, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, immediateRender: false }, 0.34);
@@ -159,7 +149,6 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
         timeline.pause();
         closeFade = gsap.to(root, { opacity: 0, duration: reduced ? 0.12 : 0.4, ease: "power2.inOut", onComplete: () => onCloseRef.current() });
       } else {
-        if (timeline.progress() === 1) copySourceAppearance();
         timeline.reverse();
       }
     };
@@ -173,10 +162,7 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
       ScrollTrigger.refresh();
       source = launch.media.getBoundingClientRect();
       const bounds = media.getBoundingClientRect();
-      const scale = Number(gsap.getProperty(media, "scaleX")) || 1;
-      const width = bounds.width / scale;
-      const height = bounds.height / scale;
-      target = new DOMRect(bounds.left + (bounds.width - width) / 2, bounds.top + root.scrollTop + (bounds.height - height) / 2, width, height);
+      target = new DOMRect(bounds.left, bounds.top + root.scrollTop, bounds.width, bounds.height);
       // Function-valued endpoints are re-evaluated at the same visual progress.
       const time = timeline.time();
       const reversed = timeline.reversed();
@@ -201,6 +187,7 @@ export function ProjectCaseStudy({ launch, onClose }: { launch: ProjectLaunch; o
       window.removeEventListener("popstate", playReverse);
       window.removeEventListener("resize", resize);
       requestCloseRef.current = () => {};
+      if (sourceImage && sourceStyles) Object.assign(sourceImage.style, sourceStyles);
       launch.media.style.opacity = saved.mediaOpacity;
       html.style.overflow = saved.htmlOverflow;
       body.style.overflow = saved.bodyOverflow;

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1414" height="1000" viewBox="0 0 1414 1000">
+  <defs>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#d8e9e9" stroke-width="1"/></pattern>
+    <linearGradient id="orb" x2="1" y2="1"><stop stop-color="#02d2e3"/><stop offset="1" stop-color="#008b98"/></linearGradient>
+  </defs>
+  <rect width="1414" height="1000" fill="#f5faf8"/>
+  <rect x="28" y="28" width="1358" height="944" rx="8" fill="none" stroke="#bcd4d4"/>
+  <rect x="1014" y="29" width="371" height="942" fill="url(#grid)"/>
+  <circle cx="1225" cy="480" r="205" fill="url(#orb)" opacity=".13"/>
+  <g fill="none" stroke="#02aebb" stroke-width="2" transform="translate(1225 480) rotate(-30)">
+    <ellipse rx="160" ry="195"/><ellipse rx="65" ry="195"/><ellipse rx="195" ry="65"/>
+  </g>
+  <path d="M83 112h36v36H83z" fill="#02bdcc"/>
+  <g font-family="Arial, sans-serif" fill="#163237">
+    <text x="140" y="137" font-size="23" letter-spacing="5">PORTFOLIO / LEARNING LAB</text>
+    <text x="86" y="275" font-size="17" letter-spacing="5" fill="#548087">SAMPLE CERTIFICATE · 2026</text>
+    <text x="80" y="385" font-size="70" font-weight="700">Creative Web</text>
+    <text x="80" y="468" font-size="70" font-weight="700">Development.</text>
+    <path d="M86 520h105" stroke="#02bdcc" stroke-width="5"/>
+    <text x="86" y="596" font-size="20" fill="#668389">PRESENTED FOR LAYOUT PREVIEW TO</text>
+    <text x="80" y="669" font-size="54">Diyannsh Verma</text>
+    <text x="86" y="731" font-size="23" fill="#668389">Interfaces · Creative coding · Web experiences</text>
+    <text x="86" y="883" font-size="19" letter-spacing="3">DEMO ONLY / NOT AN EARNED CREDENTIAL</text>
+    <text x="1265" y="912" font-size="18" text-anchor="end" fill="#548087">01 / 02</text>
+  </g>
+</svg>

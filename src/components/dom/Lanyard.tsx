@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { ownsSceneInput } from '@/lib/scene-input';
 
 import './Lanyard.css';
 
@@ -1155,6 +1156,8 @@ const Lanyard = ({
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    const inputSurface = container.closest('section') || container;
+    let activePointerId = null;
 
     const toPointer = event => {
       const rect = canvas.getBoundingClientRect();
@@ -1188,7 +1191,7 @@ const Lanyard = ({
     };
 
     const onPointerDown = event => {
-      if (!settingsRef.current.interactive || event.button > 0) return;
+      if (!settingsRef.current.interactive || event.button > 0 || !ownsSceneInput(container, event.target)) return;
       toPointer(event);
       const hit = pickCard();
       if (!hit) return;
@@ -1200,6 +1203,8 @@ const Lanyard = ({
         target: hit.point.clone()
       };
       press = { x: event.clientX, y: event.clientY, time: performance.now(), point: hit.point.clone() };
+      activePointerId = event.pointerId;
+      inputSurface.setPointerCapture(event.pointerId);
       setCursor('grabbing');
       event.preventDefault();
       start();
@@ -1207,6 +1212,11 @@ const Lanyard = ({
 
     const onPointerMove = event => {
       if (!settingsRef.current.interactive) return;
+      if (sim.grab ? event.pointerId !== activePointerId : !ownsSceneInput(container, event.target)) {
+        hovering = false;
+        setCursor('');
+        return;
+      }
       toPointer(event);
       if (sim.grab) {
         if (press && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6) press = null;
@@ -1220,8 +1230,10 @@ const Lanyard = ({
     };
 
     const onPointerUp = event => {
-      if (!sim.grab) return;
+      if (!sim.grab || event.pointerId !== activePointerId) return;
       sim.grab = null;
+      activePointerId = null;
+      if (inputSurface.hasPointerCapture(event.pointerId)) inputSurface.releasePointerCapture(event.pointerId);
       if (press && event.type === 'pointerup' && performance.now() - press.time < 450) flip(press.point);
       press = null;
       setCursor(hovering && event.pointerType !== 'touch' ? 'grab' : '');
@@ -1229,7 +1241,7 @@ const Lanyard = ({
     };
 
     const onTouchStart = event => {
-      if (!settingsRef.current.interactive || event.touches.length !== 1) return;
+      if (!settingsRef.current.interactive || event.touches.length !== 1 || !ownsSceneInput(container, event.target)) return;
       toPointer(event.touches[0]);
       if (pickCard()) event.preventDefault();
     };
@@ -1238,7 +1250,8 @@ const Lanyard = ({
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerUp);
-    window.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
+    inputSurface.addEventListener('lostpointercapture', onPointerUp);
+    inputSurface.addEventListener('touchstart', onTouchStart, { passive: false });
 
     const resize = () => {
       view.width = Math.max(1, container.clientWidth);
@@ -1275,7 +1288,9 @@ const Lanyard = ({
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
-      window.removeEventListener('touchstart', onTouchStart, true);
+      inputSurface.removeEventListener('lostpointercapture', onPointerUp);
+      inputSurface.removeEventListener('touchstart', onTouchStart);
+      if (activePointerId !== null && inputSurface.hasPointerCapture(activePointerId)) inputSurface.releasePointerCapture(activePointerId);
       [bodyMesh, frontMesh, backMesh, ring, clampMesh, eyelet, band].forEach(mesh => mesh.geometry?.dispose());
       [frontMaterial, backMaterial, edgeMaterial, metalMaterial, bandMaterial].forEach(material => material.dispose());
       [frontTexture, backTexture, strapTexture, grain, weave].forEach(texture => texture.dispose());

@@ -381,14 +381,12 @@ html[data-story-tone="dark"] .race-hud {
 .race-season > .mx-auto { display: flex; flex: 1; flex-direction: column; justify-content: center; }
 .race-season > .mx-auto > .grid { flex: 1; align-content: center; }
 .race-season > .mt-20 { flex: 0 0 auto; margin-top: 0; }
-.race-season .tag-sphere { width: min(34vw, 26rem, 42svh); }
 .race-season .outline-text { font-size: clamp(3rem, 8vw, 7rem); }
 .race-season .ui-label,
 .race-timeline .ui-label { letter-spacing: 0.13em; }
 .race-season .chrome-text,
 .race-timeline .chrome-text { color: var(--accent); }
 .race-season .outline-text { -webkit-text-stroke-color: rgb(255 255 255 / 24%); }
-.race-season .tag-sphere span { border-color: rgb(255 255 255 / 24%); }
 .race-seam {
   position: absolute;
   z-index: 5;
@@ -415,8 +413,9 @@ html[data-story-tone="dark"] .race-hud {
   border-color: var(--border);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.2rem), calc(100% - 1.2rem) 100%, 0 100%);
 }
-.race-projects article img { filter: grayscale(0.8); }
-.race-projects article:hover img { filter: grayscale(0); }
+.race-projects article img,
+.race-projects article:hover .rgb-hover,
+.race-projects article:focus-visible .rgb-hover { filter: none; }
 .race-projects article h3 { font-family: var(--font-display); text-transform: uppercase; }
 .race-projects .ui-label { letter-spacing: 0.12em; }
 
@@ -534,7 +533,6 @@ html[data-story-tone="dark"] .race-hud {
   .hero-socials { display: none; }
   .hero-bottom-type { bottom: 4.5rem; font-size: 24vw; }
   .race-season { padding-top: 4rem; }
-  .race-season .tag-sphere { width: min(72vw, 19rem, 39svh); }
   .race-season .outline-text { font-size: clamp(3rem, 12vw, 5rem); }
   .race-timeline .tl { padding-left: 1.5rem; border-left: 1px solid var(--accent); }
   .race-timeline .tl svg { left: 0; transform: none; }

@@ -1,0 +1,214 @@
+.toolkit-space {
+  width: 100%;
+  min-width: 0;
+  max-width: 38rem;
+  margin-inline: auto;
+}
+.toolkit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.toolkit-filters button {
+  border: 1px solid #ffffff20;
+  border-radius: 2rem;
+  padding: 0.45rem 0.7rem;
+  color: #a3b3bb;
+  font: 500 0.65rem var(--font-mono, monospace);
+  transition:
+    color 180ms,
+    border-color 180ms,
+    background 180ms;
+}
+.toolkit-filters button[aria-pressed="true"] {
+  color: #02d2e3;
+  border-color: #02d2e370;
+  background: #02d2e310;
+}
+.toolkit-filters button:hover {
+  color: #f7fafb;
+  border-color: #02d2e3;
+}
+.toolkit-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: clamp(16rem, 36dvh, 27rem);
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  background: radial-gradient(ellipse at center, #02d2e30c, transparent 66%);
+}
+.toolkit-stage:active {
+  cursor: grabbing;
+}
+.toolkit-stage canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+}
+.toolkit-node {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #98d4dc30;
+  border-radius: 0.4rem;
+  background: #0c1418f5;
+  color: #e4f0f2;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 5px 18px #0005;
+  will-change: transform;
+  cursor: pointer;
+}
+.toolkit-node > span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #729197;
+}
+.toolkit-node[aria-pressed="true"],
+.toolkit-node:hover {
+  color: #02d2e3;
+  border-color: #02d2e3a0;
+  background: #0b2429;
+  box-shadow: 0 0 24px #02d2e318;
+}
+.toolkit-node[aria-pressed="true"] > span {
+  background: #02d2e3;
+  box-shadow: 0 0 8px #02d2e3;
+}
+.toolkit-node:disabled {
+  pointer-events: none;
+}
+.toolkit-space button:focus-visible,
+.toolkit-stage:focus-visible {
+  outline: 2px solid #02d2e3;
+  outline-offset: 4px;
+}
+.toolkit-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2rem;
+  height: 2rem;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.toolkit-core span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #02d2e345;
+  transform: rotate(45deg);
+}
+.toolkit-core span + span {
+  inset: 0.65rem;
+  background: #02d2e3;
+  border: 0;
+  box-shadow: 0 0 25px #02d2e3aa;
+}
+.toolkit-coordinate {
+  position: absolute;
+  left: 0;
+  bottom: 0.7rem;
+  color: #6b888f;
+  font: 0.55rem var(--font-mono, monospace);
+  letter-spacing: 0.16em;
+  pointer-events: none;
+}
+.toolkit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid #ffffff16;
+  padding-block: 0.5rem;
+}
+.toolkit-toolbar p {
+  color: #90a5ae;
+  font-size: 0.68rem;
+}
+.toolkit-toolbar > div {
+  display: flex;
+  gap: 0.3rem;
+}
+.toolkit-toolbar button {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #ffffff20;
+  border-radius: 50%;
+  color: #a8bfc5;
+}
+.toolkit-toolbar button:hover {
+  color: #02d2e3;
+  border-color: #02d2e3;
+}
+.toolkit-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.toolkit-detail {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  align-items: center;
+  gap: 1rem;
+  min-height: 6rem;
+  padding: 1rem 0 0.5rem;
+  border-top: 1px solid #ffffff16;
+}
+.toolkit-detail span {
+  font: 0.55rem var(--font-mono, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #02d2e3;
+}
+.toolkit-detail h3 {
+  margin-top: 0.2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.toolkit-detail p {
+  color: #a3b3bb;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+.race-season > .toolkit-content {
+  width: 100%;
+  padding-block: 1.5rem;
+}
+@media (max-width: 767px), (max-height: 850px) {
+  .story-stack__chapter--skills {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .race-season#skills {
+    height: auto;
+    min-height: 100dvh;
+  }
+}
+@media (max-width: 767px) {
+  .race-season > .toolkit-content > .grid {
+    gap: 1.75rem;
+  }
+  .toolkit-stage {
+    height: clamp(18rem, 44dvh, 25rem);
+  }
+  .toolkit-detail {
+    grid-template-columns: 7rem 1fr;
+  }
+  .toolkit-node {
+    font-size: 0.7rem;
+    padding-inline: 0.6rem;
+  }
+}

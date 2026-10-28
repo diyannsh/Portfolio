@@ -101,5 +101,5 @@ export const portfolio = {
     { label: "X", href: "https://x.com/Diy_ansh" },
     { label: "Instagram", href: "https://www.instagram.com/notdiyansh/" },
   ],
-  nav: ["Home", "About", "Skills", "Projects", "Experience", "Contact"],
+  nav: ["Home", "About", "Skills", "Projects", "Certificates", "Experience", "Contact"],
 };

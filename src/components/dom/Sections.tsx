@@ -9,6 +9,7 @@ import { click } from "@/lib/sound";
 import Lanyard from "./Lanyard";
 import LiquidChrome from "./LiquidChrome";
 import { ProjectCaseStudy, type ProjectLaunch } from "./ProjectTransition";
+import { ToolkitSpace } from "./ToolkitSpace";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -276,46 +277,6 @@ export function About() {
 }
 
 /* ---------- SKILLS ---------- */
-function TagSphere() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const items = Array.from(ref.current!.children) as HTMLElement[];
-    const n = items.length;
-    const pts = items.map((_, i) => {
-      const phi = Math.acos(-1 + (2 * i + 1) / n);
-      const th = Math.sqrt(n * Math.PI) * phi;
-      return [Math.cos(th) * Math.sin(phi), Math.sin(th) * Math.sin(phi), Math.cos(phi)] as [number, number, number];
-    });
-    let ax = 0.2, ay = 0.3, vx = 0.002, vy = 0.003, raf = 0;
-    const R = () => Math.min(ref.current!.clientWidth, 520) / 2.3;
-    const tick = () => {
-      vx += (store.mouse.y * 0.012 - vx) * 0.05;
-      vy += (store.mouse.x * 0.012 + 0.002 - vy) * 0.05;
-      ax += vx; ay += vy;
-      const r = R();
-      const cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay);
-      pts.forEach(([x, y, z], i) => {
-        const y1 = y * cx - z * sx, z1 = y * sx + z * cx;
-        const x2 = x * cy + z1 * sy, z2 = -x * sy + z1 * cy;
-        const s = (z2 + 2) / 3;
-        items[i]!.style.transform = `translate(-50%,-50%) translate3d(${x2 * r}px, ${y1 * r}px, 0) scale(${s})`;
-        items[i]!.style.opacity = String(0.2 + 0.8 * ((z2 + 1) / 2));
-        items[i]!.style.zIndex = String(Math.round(z2 * 100));
-      });
-      raf = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  return (
-    <div ref={ref} className="tag-sphere relative mx-auto aspect-square w-full max-w-[560px]">
-      {portfolio.skills.map((s) => (
-        <span key={s} className="absolute left-1/2 top-1/2 whitespace-nowrap rounded-full border border-faint bg-background/60 px-3 py-1.5 text-xs font-semibold tracking-wide backdrop-blur md:text-sm">{s}</span>
-      ))}
-    </div>
-  );
-}
-
 function Marquee() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -348,14 +309,14 @@ export function Skills() {
   return (
     <section id="skills" className="race-season relative">
       <RaceSeam carry="light" />
-      <div className="mx-auto max-w-7xl px-5 md:px-8">
+      <div className="toolkit-content mx-auto max-w-7xl px-5 md:px-8">
         <Label n="02" text="Skills" />
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
             <SplitHeading text="TOOLKIT" className="text-[clamp(3rem,18vw,9rem)]" />
-            <p className="mt-6 max-w-md text-muted-foreground">Move your cursor to steer the cloud. A stack chosen for speed, craft and scale — from pixels on the GPU to queries in the database.</p>
+            <p className="mt-6 max-w-md text-muted-foreground">An interconnected stack, from interface to infrastructure. Spin the constellation, find a discipline, and explore the tools behind the work.</p>
           </div>
-          <TagSphere />
+          <ToolkitSpace />
         </div>
       </div>
       <div className="mt-20"><Marquee /></div>
@@ -388,12 +349,16 @@ export function Projects() {
     const media = sourceCard.firstElementChild;
     const section = sec.current;
     if (!(media instanceof HTMLDivElement) || !section) return;
+    const image = media.querySelector("img");
+    const appearance = image ? getComputedStyle(image) : null;
+    // Capture hover styling before the dialog takes focus and makes the gallery inert.
+    const imageAppearance = { filter: appearance?.filter ?? "none", transform: appearance?.transform ?? "none" };
     openingRef.current = true;
     click();
     const token = `project-${index}-${Date.now()}`;
     const scroll = (window as any).__lenis?.scroll ?? window.scrollY;
     history.pushState({ ...history.state, portfolioProjectTransition: token }, "", location.href);
-    setLaunch({ index, button: sourceCard, media, section, scroll, token });
+    setLaunch({ index, button: sourceCard, media, section, scroll, token, imageAppearance });
   };
 
   return (
@@ -446,7 +411,7 @@ export function ExperienceSection() {
     <section id="experience" ref={ref} className="race-timeline relative px-5 py-32 md:px-8 md:py-48">
       <RaceSeam carry="light" />
       <div className="mx-auto max-w-5xl">
-        <Label n="04" text="Experience" />
+        <Label n="05" text="Experience" />
         <SplitHeading text="JOURNEY" className="text-[18vw] md:text-[9vw]" />
         <div className="tl relative mt-16 pl-10 md:pl-16">
           <svg className="absolute left-2 top-0 h-full w-2 md:left-5" preserveAspectRatio="none" viewBox="0 0 2 1000">
@@ -492,7 +457,7 @@ export function Contact() {
     <section id="contact" className="race-footer relative isolate flex min-h-screen flex-col justify-between overflow-hidden px-5 pt-32 md:px-8">
       <div className="spotlight pointer-events-none absolute inset-0 opacity-60" />
       <div className="relative mx-auto w-full max-w-7xl">
-        <Label n="05" text="Contact" />
+        <Label n="06" text="Contact" />
         <Magnetic strength={0.15}><SplitHeading text="LET'S TALK" className="text-[clamp(2.5rem,19vw,14rem)]" /></Magnetic>
         <button onClick={copy} className="race-email mt-10 block max-w-full break-all text-[clamp(1rem,4vw,3rem)] font-medium tracking-tight underline decoration-faint underline-offset-8 transition-colors hover:decoration-foreground">
           {portfolio.email}

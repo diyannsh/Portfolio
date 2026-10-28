@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import { useEffect, useRef, useState } from 'react';
+import { ownsSceneInput } from '@/lib/scene-input';
 import './LiquidChrome.css';
 
 const PIXEL_BUDGET = 2.4e6;
@@ -538,6 +539,10 @@ const LiquidChrome = ({
     };
 
     const onPointerMove = event => {
+      if (!ownsSceneInput(container, event.target)) {
+        onLeave();
+        return;
+      }
       const s = settingsRef.current;
       const spot = toGrid(event.clientX, event.clientY);
       pointer.nx = clamp(spot.nx, -1, 1);
@@ -566,6 +571,7 @@ const LiquidChrome = ({
     };
 
     const onPointerDown = event => {
+      if (!ownsSceneInput(container, event.target)) return;
       const s = settingsRef.current;
       const spot = toGrid(event.clientX, event.clientY);
       if (!spot.inside) return;
